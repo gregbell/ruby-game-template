@@ -12,6 +12,8 @@ BRICK_HEIGHT = 32
 PADDLE_WIDTH = 104
 PADDLE_HEIGHT = 24
 PADDLE_SPEED = 6
+BALL_WIDTH = 22
+BALL_HEIGHT = 22
 
 class Rect
   attr_reader :x, :y, :width, :height
@@ -61,6 +63,21 @@ class Paddle
 
   def initialize(image, rect)
     @velocity = [0, 0]
+    @image = image
+    @rect = rect
+    @velocity = velocity
+  end
+
+  def draw(ctx)
+    ctx.drawImage(@image, rect.x, rect.y, rect.width, rect.height)
+  end
+end
+
+class Ball
+  attr_reader :velocity, :rect
+
+  def initialize(image, rect)
+    @velocity = [1.0, 3.0]
     @image = image
     @rect = rect
     @velocity = velocity
@@ -145,6 +162,17 @@ class Game
         PADDLE_HEIGHT
       )
     )
+
+  @ball = Ball.new(
+      image("assets/images/ball.png"),
+      Rect.new(
+        GAME_WIDTH / 2,
+        GAME_HEIGHT / 2,
+        BALL_WIDTH,
+        BALL_HEIGHT
+      )
+  )
+
   end
 
   def start!
@@ -168,6 +196,7 @@ class Game
       brick.draw(ctx)
     end
 
+    @ball.draw(ctx)
     @paddle.draw(ctx)
 
     request_draw_callback
