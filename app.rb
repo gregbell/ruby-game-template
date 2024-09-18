@@ -16,7 +16,7 @@ BALL_WIDTH = 22
 BALL_HEIGHT = 22
 
 class Rect
-  attr_reader :x, :y, :width, :height
+  attr_accessor :x, :y, :width, :height
 
   def initialize(x, y, width, height)
     @x = x
@@ -74,7 +74,7 @@ class Paddle
 end
 
 class Ball
-  attr_reader :velocity, :rect
+  attr_accessor :velocity, :rect
 
   def initialize(image, rect)
     @velocity = [1.0, 3.0]
