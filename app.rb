@@ -10,7 +10,7 @@ BRICK_WIDTH = 64
 BRICK_HEIGHT = 32
 PADDLE_WIDTH = 104
 PADDLE_HEIGHT = 24
-PADDLE_SPEED = 6
+PADDLE_SPEED = 0.35
 BALL_WIDTH = 22
 BALL_HEIGHT = 22
 
@@ -58,17 +58,25 @@ end
 
 
 class Paddle
-  attr_reader :velocity, :rect
+  attr_reader :rect
 
   def initialize(image, rect)
-    @velocity = [0, 0]
     @image = image
     @rect = rect
-    @velocity = velocity
   end
 
   def draw(ctx)
     ctx.drawImage(@image, rect.x, rect.y, rect.width, rect.height)
+  end
+
+  def move_left!(dt)
+    rect.x -= PADDLE_SPEED * dt
+    rect.x = [0, [GAME_WIDTH-PADDLE_WIDTH, rect.x].min].max
+  end
+
+  def move_right!(dt)
+    rect.x += PADDLE_SPEED * dt
+    rect.x = [0, [GAME_WIDTH-PADDLE_WIDTH, rect.x].min].max
   end
 end
 
@@ -192,11 +200,21 @@ class Game
 
   private
 
+  def key_pressed?(key)
+    @keys_down[0] == key
+  end
+
   def update
+    # Move the ball
     @ball.rect.x = @ball.rect.x + @ball.velocity[0]
     @ball.rect.y = @ball.rect.y + @ball.velocity[1]
 
-    puts "key_down = #{@keys_down[0].inspect}"
+    # Move the paddle
+    if key_pressed?(:ArrowLeft)
+      @paddle.move_left!(@dt)
+    elsif key_pressed?(:ArrowRight)
+      @paddle.move_right!(@dt)
+    end
   end
 
   def draw
