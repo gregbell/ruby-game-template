@@ -69,12 +69,12 @@ class Paddle
     ctx.drawImage(@image, rect.x, rect.y, rect.width, rect.height)
   end
 
-  def move_left!(dt)
+  def move_left(dt)
     rect.x -= PADDLE_SPEED * dt
     rect.x = [0, [GAME_WIDTH-PADDLE_WIDTH, rect.x].min].max
   end
 
-  def move_right!(dt)
+  def move_right(dt)
     rect.x += PADDLE_SPEED * dt
     rect.x = [0, [GAME_WIDTH-PADDLE_WIDTH, rect.x].min].max
   end
@@ -205,15 +205,17 @@ class Game
   end
 
   def update
+    # Move the paddle
+    if key_pressed?(:ArrowLeft)
+      @paddle.move_left(@dt)
+    elsif key_pressed?(:ArrowRight)
+      @paddle.move_right(@dt)
+    end
+
     # Move the ball
     @ball.rect.x = @ball.rect.x + @ball.velocity[0]
     @ball.rect.y = @ball.rect.y + @ball.velocity[1]
 
-    # Move the paddle
-    if key_pressed?(:ArrowLeft)
-      @paddle.move_left!(@dt)
-    elsif key_pressed?(:ArrowRight)
-      @paddle.move_right!(@dt)
     end
   end
 
