@@ -6,7 +6,6 @@ puts "Starting app.rb"
 
 GAME_WIDTH = 640
 GAME_HEIGHT = 480
-GAME_SPEED = 1000 / 60
 BRICK_WIDTH = 64
 BRICK_HEIGHT = 32
 PADDLE_WIDTH = 104
@@ -131,8 +130,21 @@ class Game
     @canvas[:height] = GAME_WIDTH
     @ctx = @canvas.getContext("2d")
 
-    JS.global[:document].addEventListener("keydown"){|e| on_keydown(e) }
-    JS.global[:document].addEventListener("keyup"){|e| on_keyup(e) }
+    @last_ts = 0
+    @dt = 0
+
+    # Handle Key Presses
+    @keys_down = []
+    JS.global[:document].addEventListener "keydown" do |event|
+      key_code = js_event_to_key_code(event)
+      @keys_down.unshift(key_code) unless @keys_down.include?(key_code)
+      nil
+    end
+    JS.global[:document].addEventListener "keyup" do |event|
+      key_code = js_event_to_key_code(event)
+      @keys_down.delete_if{|key| key == key_code }
+      nil
+    end
 
     brick_types = {
       red: BrickType.new(image("assets/images/brick-red.png"), 10),
@@ -175,8 +187,7 @@ class Game
 
   def start!
     puts "Running Game#start!"
-    request_draw_callback
-    request_update_callback
+    request_animaation_frame!
   end
 
   private
@@ -185,10 +196,10 @@ class Game
     @ball.rect.x = @ball.rect.x + @ball.velocity[0]
     @ball.rect.y = @ball.rect.y + @ball.velocity[1]
 
-    request_update_callback
+    puts "key_down = #{@keys_down[0].inspect}"
   end
 
-  def draw(ts)
+  def draw
     # Draw background
     ctx[:fillStyle] = "#140c1c"
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT)
@@ -200,35 +211,34 @@ class Game
 
     @ball.draw(ctx)
     @paddle.draw(ctx)
-
-    request_draw_callback
   end
 
-  def on_keydown(event)
-    puts "On keydown!"
-    puts event
-  end
+  def animate(ts)
+    fts = ts.to_f # Make sure its a Ruby float
+    @dt = fts - @last_ts
+    @last_ts = fts
 
-  def on_keyup(event)
-    puts "On keyup!"
-    puts event
-  end
+    update
+    draw
 
-  def request_draw_callback
-    JS.global.setTimeout(
-      -> {JS.global.requestAnimationFrame{|ts| draw(ts) } },
-      GAME_SPEED
-    )
-  end
-
-  def request_update_callback
-    JS.global.setTimeout(-> { update() }, GAME_SPEED)
+    request_animaation_frame!
   end
 
   def image(src)
     img = JS.global[:Image].new
     img[:src] = src
     img
+  end
+
+  def request_animaation_frame!
+    JS.global.requestAnimationFrame{|ts| animate(ts) }
+  end
+
+  # Returns either a symbol or nil for the key in the event
+  def js_event_to_key_code(event)
+    return unless event && event[:key]
+
+    event[:key].to_s.to_sym
   end
 end
 
