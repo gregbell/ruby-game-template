@@ -163,7 +163,7 @@ class Game
       )
     )
 
-  @ball = Ball.new(
+    @ball = Ball.new(
       image("assets/images/ball.png"),
       Rect.new(
         GAME_WIDTH / 2,
@@ -171,11 +171,11 @@ class Game
         BALL_WIDTH,
         BALL_HEIGHT
       )
-  )
-
+    )
   end
 
   def start!
+    puts "Running Game#start!"
     request_draw_callback
     request_update_callback
   end
@@ -183,7 +183,10 @@ class Game
   private
 
   def update
-    puts "Running Update"
+    @ball.rect.x = @ball.rect.x + @ball.velocity[0]
+    @ball.rect.y = @ball.rect.y + @ball.velocity[1]
+
+    request_update_callback
   end
 
   def draw(ts)
