@@ -93,6 +93,11 @@ class Ball
   def draw(ctx)
     ctx.drawImage(@image, rect.x, rect.y, rect.width, rect.height)
   end
+
+  def reflect(x, y)
+    velocity[0] = -1 * velocity[0] if x
+    velocity[1] = -1 * velocity[1] if y
+  end
 end
 
 
@@ -216,6 +221,22 @@ class Game
     @ball.rect.x = @ball.rect.x + @ball.velocity[0]
     @ball.rect.y = @ball.rect.y + @ball.velocity[1]
 
+    # Wall collisions
+    if @ball.rect.x < 0 # left wall
+      @ball.rect.x = 0
+      @ball.reflect(true, false)
+
+    elsif (@ball.rect.x+@ball.rect.width) > GAME_WIDTH # right wall
+      @ball.rect.x = GAME_WIDTH - @ball.rect.width
+      @ball.reflect(true, false)
+
+    elsif (@ball.rect.y+@ball.rect.height) > GAME_HEIGHT # bottom wall
+      @ball.rect.y = GAME_HEIGHT - @ball.rect.height
+      @ball.reflect(false, true)
+
+    elsif @ball.rect.y < 0 # top wall
+      @ball.rect.y = 0
+      @ball.reflect(false, true)
     end
   end
 
