@@ -114,7 +114,6 @@ class Level
         bricks[flat_index] = Brick.new(btype,
                                            (x * BRICK_WIDTH) + offset_x,
                                            (y * BRICK_HEIGHT) + offset_y)
-        puts "Building block #{flat_index} at #{bricks[flat_index].x}, #{bricks[flat_index].y}"
       end
     end
 
@@ -232,10 +231,6 @@ class Game
     img
   end
 end
-
-
-
-puts "The game has loaded!"
 
 puts "Initializing game"
 
