@@ -19,7 +19,7 @@ The project includes:
 
 * `index.html` boilerplate to start the game.
 
-* Examples of DOM bindings for events and images.
+* Examples of DOM bindings for events, images, and sounds.
 
 * Example animation loop drawing on an HTML Canvas
 

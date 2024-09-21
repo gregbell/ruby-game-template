@@ -15,6 +15,10 @@ PADDLE_SPEED = 0.35
 BALL_WIDTH = 22
 BALL_HEIGHT = 22
 
+Image = JS.global[:Image]
+Audio = JS.global[:Audio]
+Document = JS.global[:document]
+
 class Rect
   attr_accessor :x, :y, :width, :height
 
@@ -208,12 +212,13 @@ class Game
 
     # Handle Key Presses
     @keys_down = []
-    JS.global[:document].addEventListener "keydown" do |event|
+    Document.addEventListener "keydown" do |event|
       key_code = js_event_to_key_code(event)
       @keys_down.unshift(key_code) unless @keys_down.include?(key_code)
       nil
     end
-    JS.global[:document].addEventListener "keyup" do |event|
+
+    Document.addEventListener "keyup" do |event|
       key_code = js_event_to_key_code(event)
       @keys_down.delete_if{|key| key == key_code }
       nil
@@ -246,6 +251,9 @@ class Game
         PADDLE_HEIGHT
       )
     )
+
+    @audio_brick = Audio.new("assets/sounds/brick.wav")
+    @audio_paddle = Audio.new("assets/sounds/paddle.wav")
 
     @ball = Ball.new(
       image("assets/images/ball.png"),
@@ -303,6 +311,7 @@ class Game
         @ball.reflect(false, true)
 
       elsif @ball.rect.intersects?(@paddle.rect)
+        @audio_paddle.play
         @ball.collide! @paddle.rect
       else
         @level.bricks.each do |brick|
@@ -310,6 +319,7 @@ class Game
             @ball.collide! brick.rect
             @score += brick.points
             brick.break!
+            @audio_brick.play
             @state = STATE_WIN if @level.clear?
           end
         end
@@ -359,7 +369,7 @@ class Game
   end
 
   def image(src)
-    img = JS.global[:Image].new
+    img = Image.new
     img[:src] = src
     img
   end
@@ -378,6 +388,4 @@ end
 
 puts "Initializing game"
 
-Game.new(JS.global[:document].getElementById("canvas")).start!
-
-"Starting up"
+Game.new(Document.getElementById("canvas")).start!
