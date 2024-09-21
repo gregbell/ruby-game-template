@@ -73,6 +73,10 @@ class Brick
     ctx.drawImage(@btype.image, x, y)
   end
 
+  def points
+    @btype.points
+  end
+
   def break!
     @broken = true
   end
@@ -155,6 +159,10 @@ class Level
     puts "Initialized a level with #{@bricks.size} bricks"
   end
 
+  def clear?
+    @bricks.all? &:broken?
+  end
+
   private
 
   def initialize_bricks(layout)
@@ -182,11 +190,18 @@ end
 class Game
   attr_reader :canvas, :ctx
 
+  STATE_PLAY = :play
+  STATE_LOSE = :lose
+  STATE_WIN = :win
+
   def initialize(canvas)
     @canvas = canvas
     @canvas[:width] = GAME_WIDTH
     @canvas[:height] = GAME_WIDTH
     @ctx = @canvas.getContext("2d")
+
+    @state = nil
+    @score = 0
 
     @last_ts = 0
     @dt = 0
@@ -245,6 +260,8 @@ class Game
 
   def start!
     puts "Running Game#start!"
+    @score = 0
+    @state = STATE_PLAY
     request_animaation_frame!
   end
 
@@ -255,46 +272,49 @@ class Game
   end
 
   def update
-    # Move the paddle
-    if key_pressed?(:ArrowLeft)
-      @paddle.move_left(@dt)
-    elsif key_pressed?(:ArrowRight)
-      @paddle.move_right(@dt)
-    end
+    if @state == STATE_PLAY
+      # Move the paddle
+      if key_pressed?(:ArrowLeft)
+        @paddle.move_left(@dt)
+      elsif key_pressed?(:ArrowRight)
+        @paddle.move_right(@dt)
+      end
 
-    # Move the ball
-    @ball.rect.x = @ball.rect.x + @ball.velocity[0]
-    @ball.rect.y = @ball.rect.y + @ball.velocity[1]
+      # Move the ball
+      @ball.rect.x = @ball.rect.x + @ball.velocity[0]
+      @ball.rect.y = @ball.rect.y + @ball.velocity[1]
 
-    # Wall collisions
-    if @ball.rect.x < 0 # left wall
-      @ball.rect.x = 0
-      @ball.reflect(true, false)
+      # Wall collisions
+      if @ball.rect.x < 0 # left wall
+        @ball.rect.x = 0
+        @ball.reflect(true, false)
 
-    elsif (@ball.rect.x+@ball.rect.width) > GAME_WIDTH # right wall
-      @ball.rect.x = GAME_WIDTH - @ball.rect.width
-      @ball.reflect(true, false)
+      elsif (@ball.rect.x+@ball.rect.width) > GAME_WIDTH # right wall
+        @ball.rect.x = GAME_WIDTH - @ball.rect.width
+        @ball.reflect(true, false)
 
-    elsif (@ball.rect.y+@ball.rect.height) > GAME_HEIGHT # bottom wall
-      @ball.rect.y = GAME_HEIGHT - @ball.rect.height
-      @ball.reflect(false, true)
+      elsif (@ball.rect.y+@ball.rect.height) > GAME_HEIGHT # bottom wall
+        @ball.rect.y = GAME_HEIGHT - @ball.rect.height
+        @ball.reflect(false, true)
+        @state = STATE_LOSE
 
-    elsif @ball.rect.y < 0 # top wall
-      @ball.rect.y = 0
-      @ball.reflect(false, true)
+      elsif @ball.rect.y < 0 # top wall
+        @ball.rect.y = 0
+        @ball.reflect(false, true)
 
-    elsif @ball.rect.intersects?(@paddle.rect)
-      @ball.collide! @paddle.rect
-    else
-      @level.bricks.each do |brick|
-        if !brick.broken? && @ball.rect.intersects?(brick.rect)
-          @ball.collide! brick.rect
-          brick.break!
+      elsif @ball.rect.intersects?(@paddle.rect)
+        @ball.collide! @paddle.rect
+      else
+        @level.bricks.each do |brick|
+          if !brick.broken? && @ball.rect.intersects?(brick.rect)
+            @ball.collide! brick.rect
+            @score += brick.points
+            brick.break!
+            @state = STATE_WIN if @level.clear?
+          end
         end
       end
     end
-
-
   end
 
   def draw
@@ -309,6 +329,22 @@ class Game
 
     @ball.draw(ctx)
     @paddle.draw(ctx)
+
+    ctx[:fillStyle] = "#ffffff"
+    ctx[:font] = "bold 24px monospace"
+    ctx[:textAlign] = "left"
+    ctx.fillText("SCORE:", 16, 36)
+    ctx.fillText(@score, 108, 36)
+
+    if @state == STATE_WIN
+      ctx[:font] = "bold 36px monospace"
+      ctx[:textAlign] = "center"
+      ctx.fillText("YAY, YOU DID IT!!!", GAME_WIDTH / 2, GAME_HEIGHT / 2)
+    elsif @state == STATE_LOSE
+      ctx[:font] = "bold 36px monospace"
+      ctx[:textAlign] = "center"
+      ctx.fillText("OH NO, GAME OVER :(", GAME_WIDTH / 2, GAME_HEIGHT / 2)
+    end
   end
 
   def animate(ts)
