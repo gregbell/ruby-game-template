@@ -1,4 +1,5 @@
 require "js"
+require "forwardable"
 
 puts RUBY_VERSION # (Printed to the Web browser console)
 
@@ -23,6 +24,27 @@ class Rect
     @width = width
     @height = height
   end
+
+  def intersects?(other)
+    @x < other.x + other.width &&
+    @x + @width > other.x &&
+    @y < other.y + other.height &&
+    @y + @height > other.y
+  end
+
+  def clip(other)
+    x = [@x, other.x].max
+    y = [@y, other.y].max
+
+    end_x = [@x + @width, other.x + other.width].min
+    end_y = [@y + @height, other.y + other.height].min
+
+    if x > end_x || y > end_y
+      return nil
+    end
+
+    Rect.new(x, y, end_x - x, end_y - y)
+  end
 end
 
 class BrickType
@@ -34,25 +56,29 @@ class BrickType
   end
 end
 
-
 class Brick
-  attr_reader :x, :y
+  extend Forwardable
+
+  attr_reader :rect
+
   def initialize(btype, x, y)
     @btype = btype
-    @x = x
-    @y = y
+    @rect = Rect.new(x, y, BRICK_WIDTH, BRICK_HEIGHT)
+    @broken = false
   end
+
+  def_delegators :rect, :x, :y, :width, :height
 
   def draw(ctx)
     ctx.drawImage(@btype.image, x, y)
   end
 
-  def height
-    BRICK_HEIGHT
+  def break!
+    @broken = true
   end
 
-  def width
-    BRICK_WIDTH
+  def broken?
+    @broken
   end
 end
 
@@ -84,7 +110,7 @@ class Ball
   attr_accessor :velocity, :rect
 
   def initialize(image, rect)
-    @velocity = [1.0, 3.0]
+    @velocity = [2.0, 6.0]
     @image = image
     @rect = rect
     @velocity = velocity
@@ -97,6 +123,25 @@ class Ball
   def reflect(x, y)
     velocity[0] = -1 * velocity[0] if x
     velocity[1] = -1 * velocity[1] if y
+  end
+
+  def collide!(other)
+    overlap = rect.clip(other)
+    if overlap.width < overlap.height
+      reflect(true, false)
+      if rect.x == overlap.x
+        rect.x = rect.x + overlap.width
+      else
+        rect.x = rect.x - overlap.width
+      end
+    else
+      reflect(false, true)
+      if rect.y == overlap.y
+        rect.y = rect.y + overlap.height
+      else
+        rect.y = rect.y - overlap.height
+      end
+    end
   end
 end
 
@@ -118,7 +163,7 @@ class Level
     offset_x = (GAME_WIDTH - (BRICK_WIDTH * cols)) / 2
     offset_y = 48
 
-    bricks = []
+    bricks = Array.new(rows * cols)
 
     layout.each_with_index do |row, y|
       row.each_with_index do |btype, x|
@@ -237,7 +282,19 @@ class Game
     elsif @ball.rect.y < 0 # top wall
       @ball.rect.y = 0
       @ball.reflect(false, true)
+
+    elsif @ball.rect.intersects?(@paddle.rect)
+      @ball.collide! @paddle.rect
+    else
+      @level.bricks.each do |brick|
+        if !brick.broken? && @ball.rect.intersects?(brick.rect)
+          @ball.collide! brick.rect
+          brick.break!
+        end
+      end
     end
+
+
   end
 
   def draw
@@ -247,7 +304,7 @@ class Game
 
     # Draw bricks
     @level.bricks.each do |brick|
-      brick.draw(ctx)
+      brick.draw(ctx) if !brick.broken?
     end
 
     @ball.draw(ctx)
